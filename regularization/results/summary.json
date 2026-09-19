@@ -45,154 +45,154 @@
     "n_zeros": 24
   },
   {
-    "experiment": "mlp_digits",
+    "experiment": "mlp_fashion",
     "name": "none",
-    "train_acc": 1.0,
-    "val_acc": 0.86,
-    "test_acc": 0.8293,
-    "gap": 0.1707,
-    "best_epoch": 18,
-    "stopped_epoch": 159
+    "train_acc": 0.9347,
+    "val_acc": 0.792,
+    "test_acc": 0.787,
+    "gap": 0.1477,
+    "best_epoch": 11,
+    "stopped_epoch": 24
   },
   {
-    "experiment": "mlp_digits",
+    "experiment": "mlp_fashion",
     "name": "l2",
-    "train_acc": 1.0,
-    "val_acc": 0.885,
-    "test_acc": 0.8556,
-    "gap": 0.1444,
-    "best_epoch": 155,
-    "stopped_epoch": 159
+    "train_acc": 0.934,
+    "val_acc": 0.802,
+    "test_acc": 0.797,
+    "gap": 0.137,
+    "best_epoch": 13,
+    "stopped_epoch": 24
   },
   {
-    "experiment": "mlp_digits",
+    "experiment": "mlp_fashion",
     "name": "l1",
-    "train_acc": 1.0,
-    "val_acc": 0.855,
-    "test_acc": 0.849,
-    "gap": 0.151,
-    "best_epoch": 93,
-    "stopped_epoch": 159
+    "train_acc": 0.8427,
+    "val_acc": 0.792,
+    "test_acc": 0.784,
+    "gap": 0.0587,
+    "best_epoch": 15,
+    "stopped_epoch": 24
   },
   {
-    "experiment": "mlp_digits",
+    "experiment": "mlp_fashion",
     "name": "dropout",
-    "train_acc": 1.0,
-    "val_acc": 0.81,
-    "test_acc": 0.8359,
-    "gap": 0.1641,
-    "best_epoch": 50,
-    "stopped_epoch": 159
+    "train_acc": 0.872,
+    "val_acc": 0.801,
+    "test_acc": 0.7955,
+    "gap": 0.0765,
+    "best_epoch": 16,
+    "stopped_epoch": 24
   },
   {
-    "experiment": "mlp_digits",
+    "experiment": "mlp_fashion",
     "name": "input_noise",
-    "train_acc": 1.0,
-    "val_acc": 0.85,
-    "test_acc": 0.8603,
-    "gap": 0.1397,
-    "best_epoch": 41,
-    "stopped_epoch": 159
+    "train_acc": 0.9047,
+    "val_acc": 0.808,
+    "test_acc": 0.803,
+    "gap": 0.1017,
+    "best_epoch": 20,
+    "stopped_epoch": 24
   },
   {
-    "experiment": "mlp_digits",
+    "experiment": "mlp_fashion",
     "name": "early_stop",
-    "train_acc": 1.0,
-    "val_acc": 0.86,
-    "test_acc": 0.8471,
-    "gap": 0.1529,
-    "best_epoch": 27,
-    "stopped_epoch": 47
+    "train_acc": 0.916,
+    "val_acc": 0.829,
+    "test_acc": 0.8115,
+    "gap": 0.1045,
+    "best_epoch": 11,
+    "stopped_epoch": 24
   },
   {
-    "experiment": "mlp_digits",
+    "experiment": "mlp_fashion",
     "name": "label_smooth",
-    "train_acc": 1.0,
-    "val_acc": 0.88,
-    "test_acc": 0.8655,
-    "gap": 0.1345,
-    "best_epoch": 65,
-    "stopped_epoch": 159
+    "train_acc": 0.9567,
+    "val_acc": 0.787,
+    "test_acc": 0.798,
+    "gap": 0.1587,
+    "best_epoch": 15,
+    "stopped_epoch": 24
   },
   {
-    "experiment": "mlp_digits",
+    "experiment": "mlp_fashion",
     "name": "l2+dropout",
-    "train_acc": 1.0,
-    "val_acc": 0.83,
-    "test_acc": 0.8484,
-    "gap": 0.1516,
-    "best_epoch": 94,
-    "stopped_epoch": 159
+    "train_acc": 0.886,
+    "val_acc": 0.785,
+    "test_acc": 0.7925,
+    "gap": 0.0935,
+    "best_epoch": 16,
+    "stopped_epoch": 24
   },
   {
-    "experiment": "digits",
+    "experiment": "fashion_cnn",
     "name": "mlp",
-    "params": 85002,
-    "train_acc": 1.0,
-    "test_acc": 0.9306,
-    "gap": 0.0694,
-    "stopped_epoch": 44
+    "params": 269322,
+    "train_acc": 0.9107,
+    "test_acc": 0.7905,
+    "gap": 0.1202,
+    "stopped_epoch": 14
   },
   {
-    "experiment": "digits",
+    "experiment": "fashion_cnn",
     "name": "cnn  (param sharing)",
-    "params": 3818,
-    "train_acc": 1.0,
-    "test_acc": 0.9352,
-    "gap": 0.0648
+    "params": 20490,
+    "train_acc": 0.964,
+    "test_acc": 0.8565,
+    "gap": 0.1075
   },
   {
-    "experiment": "digits",
+    "experiment": "fashion_cnn",
     "name": "cnn + shift aug",
-    "params": 3818,
-    "train_acc": 1.0,
-    "test_acc": 0.9568,
-    "gap": 0.0432
+    "params": 20490,
+    "train_acc": 0.944,
+    "test_acc": 0.8445,
+    "gap": 0.0995
   },
   {
     "experiment": "bagging",
     "name": "single mlp",
-    "train_acc": 1.0,
-    "test_acc": 0.857,
-    "gap": 0.143
+    "train_acc": 0.9193,
+    "test_acc": 0.815,
+    "gap": 0.1043
   },
   {
     "experiment": "bagging",
-    "name": "bagging x5",
-    "train_acc": 0.9625,
-    "test_acc": 0.88,
-    "gap": 0.0825
+    "name": "bagging x3",
+    "train_acc": 0.924,
+    "test_acc": 0.8115,
+    "gap": 0.1125
   },
   {
     "experiment": "sparse_hidden",
     "name": "no act. penalty",
-    "train_acc": 1.0,
-    "test_acc": 0.8392,
-    "gap": 0.1608,
-    "frac_hidden_near_zero": 0.0023,
-    "mean_abs_hidden": 0.8124
+    "train_acc": 0.9433,
+    "test_acc": 0.807,
+    "gap": 0.1363,
+    "frac_hidden_near_zero": 0.0039,
+    "mean_abs_hidden": 0.7263
   },
   {
     "experiment": "sparse_hidden",
     "name": "L1 on hidden",
-    "train_acc": 1.0,
-    "test_acc": 0.8293,
-    "gap": 0.1707,
-    "frac_hidden_near_zero": 0.03,
-    "mean_abs_hidden": 0.3747
+    "train_acc": 0.9293,
+    "test_acc": 0.8075,
+    "gap": 0.1218,
+    "frac_hidden_near_zero": 0.0073,
+    "mean_abs_hidden": 0.5678
   },
   {
     "experiment": "adversarial",
     "name": "clean train",
-    "clean_test_acc": 0.9503,
-    "fgsm_test_acc": 0.2638,
-    "train_acc": 1.0
+    "clean_test_acc": 0.8195,
+    "fgsm_test_acc": 0.136,
+    "train_acc": 0.9233
   },
   {
     "experiment": "adversarial",
     "name": "FGSM train",
-    "clean_test_acc": 0.9487,
-    "fgsm_test_acc": 0.5934,
-    "train_acc": 0.9933
+    "clean_test_acc": 0.805,
+    "fgsm_test_acc": 0.5935,
+    "train_acc": 0.866
   }
 ]
