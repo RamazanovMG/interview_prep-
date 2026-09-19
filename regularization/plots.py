@@ -40,6 +40,25 @@ def save(fig: plt.Figure, name: str) -> Path:
     return path
 
 
+def plot_fashion_grid(
+    X: np.ndarray,
+    y: np.ndarray,
+    labels: tuple[str, ...],
+    path: str = "fashion_samples.png",
+    n: int = 40,
+) -> Path:
+    """Sanity check: these are real Zalando images, not generated blobs."""
+    imgs = X.reshape(len(X), -1)
+    side = int(np.sqrt(imgs.shape[1]))
+    fig, axes = plt.subplots(4, 10, figsize=(11, 4.6), layout="constrained")
+    for ax, img, lab in zip(axes.ravel(), imgs[:n], y[:n]):
+        ax.imshow(img.reshape(side, side), cmap="gray")
+        ax.set_title(labels[int(lab)], fontsize=7)
+        ax.axis("off")
+    fig.suptitle("Fashion-MNIST (Zalando) — train subset")
+    return save(fig, path)
+
+
 def plot_l2_geometry(path: str = "fig71_l2_geometry.png") -> Path:
     """Recreate the geometry of Fig. 7.1: elongated loss vs L2 circles."""
     w_star = np.array([1.8, 0.7])

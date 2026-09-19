@@ -194,13 +194,13 @@ Prior: the decision function should be invariant along the data manifold’s tan
 |---|---|---|---|
 | geometry | 7.1–7.2, eqs 7.13 / 7.23 | closed form | `fig71_l2_geometry.png`, `l1_l2_constraint_sets.png`, `l1_vs_l2_shrinkage.png` |
 | linear | 7.1, 7.3 | sklearn diabetes + breast_cancer | `linear_weights.png`, `cancer_weights.png` |
-| MLP regularizers | 7.1, 7.5, 7.8, 7.12 | sklearn digits 10-way, n=80 | `mlp_boundaries.png`, `learning_curves.png`, `comparison_bars.png` |
-| CNN / aug | 7.4, 7.9 | sklearn digits 10-way | `digits_cnn_vs_mlp.png` |
-| bagging | 7.11 | digits 10-way | `bagging.png` |
-| sparse hidden | 7.10 | digits 10-way | `activation_sparsity.png` |
-| FGSM | 7.13 | digits 10-way | `adversarial.png` |
+| MLP regularizers | 7.1, 7.5, 7.8, 7.12 | Fashion-MNIST n=1500 | `mlp_boundaries.png`, `learning_curves.png`, `comparison_bars.png` |
+| CNN / aug | 7.4, 7.9 | Fashion-MNIST | `digits_cnn_vs_mlp.png` |
+| bagging | 7.11 | Fashion-MNIST | `bagging.png` |
+| sparse hidden | 7.10 | Fashion-MNIST | `activation_sparsity.png` |
+| FGSM | 7.13 | Fashion-MNIST | `adversarial.png` |
 
-No synthetic samples. `sklearn.datasets` only (`load_diabetes`, `load_breast_cancer`, `load_digits`).
+No synthetic samples. Linear stuff is sklearn `load_diabetes` / `load_breast_cancer`. Vision is official Fashion-MNIST (auto-fetched from [Zalando](https://github.com/zalandoresearch/fashion-mnist) into `data_cache/`).
 
 ## Interview questions this folder is for
 

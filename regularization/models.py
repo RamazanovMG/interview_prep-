@@ -77,21 +77,26 @@ class MLP(nn.Module):
 class TinyCNN(nn.Module):
     """§7.9.1 parameter sharing: same 3x3 kernel at every spatial location."""
 
-    def __init__(self, n_classes: int = 10, dropout: float = 0.0) -> None:
+    def __init__(
+        self, n_classes: int = 10, dropout: float = 0.0, img_size: int = 28
+    ) -> None:
         super().__init__()
+        self.img_size = img_size
         self.conv = nn.Sequential(
-            nn.Conv2d(1, 8, kernel_size=3, padding=1),
+            nn.Conv2d(1, 16, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.Conv2d(8, 16, kernel_size=3, padding=1),
+            nn.MaxPool2d(2),
+            nn.Conv2d(16, 32, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2),
         )
+        flat = 32 * (img_size // 4) * (img_size // 4)
         self.drop = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
-        self.head = nn.Linear(16 * 4 * 4, n_classes)
+        self.head = nn.Linear(flat, n_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.ndim == 2:
-            x = x.reshape(-1, 1, 8, 8)
+            x = x.reshape(-1, 1, self.img_size, self.img_size)
         h = self.conv(x)
         h = self.drop(h.reshape(h.size(0), -1))
         return self.head(h)

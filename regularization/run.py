@@ -16,9 +16,10 @@ sys.path.insert(0, str(ROOT))
 
 from closed_form import ridge_normal_equation  # noqa: E402
 from data import (  # noqa: E402
+    FASHION_LABELS,
     load_cancer_split,
     load_diabetes_split,
-    load_digits_split,
+    load_fashion_split,
     shift_images,
 )
 from models import MLP, TinyCNN, fgsm, n_params  # noqa: E402
@@ -32,6 +33,7 @@ from plots import (  # noqa: E402
     plot_learning_curves,
     plot_linear_mse,
     plot_shrinkage_1d,
+    plot_fashion_grid,
     plot_sparsity_hist,
     plot_weight_stems,
 )
@@ -154,9 +156,10 @@ def _mlp(
 def exp_mlp_digits(epochs: int) -> tuple[list[dict], dict]:
     from sklearn.decomposition import PCA
 
-    data = load_digits_split(n_train=80, n_val=200)
+    data = load_fashion_split()
+    plot_fashion_grid(data.X_train, data.y_train, FASHION_LABELS)
     pca = PCA(2, random_state=0).fit(data.X_train)
-    base = dict(epochs=epochs, lr=0.02, batch_size=16, optimizer="adamw")
+    base = dict(epochs=epochs, lr=0.003, batch_size=64, optimizer="adamw")
     specs = {
         "none": (0.0, TrainConfig(**base, restore_best=False, seed=0)),
         "l2": (0.0, TrainConfig(**base, weight_decay=0.04, seed=1)),
@@ -179,7 +182,7 @@ def exp_mlp_digits(epochs: int) -> tuple[list[dict], dict]:
     histories = {}
     rows = []
     for name, (dropout, cfg) in specs.items():
-        model = _mlp(64, 10, dropout=dropout, seed=cfg.seed)
+        model = _mlp(784, 10, dropout=dropout, seed=cfg.seed)
         hist = train_classifier(model, data.X_train, data.y_train, data.X_val, data.y_val, cfg)
         met = metrics_for(
             model, data.X_train, data.y_train, data.X_val, data.y_val, data.X_test, data.y_test
@@ -188,7 +191,7 @@ def exp_mlp_digits(epochs: int) -> tuple[list[dict], dict]:
         histories[name] = hist
         rows.append(
             {
-                "experiment": "mlp_digits",
+                "experiment": "mlp_fashion",
                 "name": name,
                 "train_acc": met.train_acc,
                 "val_acc": met.val_acc,
@@ -205,31 +208,31 @@ def exp_mlp_digits(epochs: int) -> tuple[list[dict], dict]:
     plot_comparison_bars(
         rows,
         "comparison_bars.png",
-        title="256-256 MLP on sklearn digits 10-way (n_train=80)",
+        title="256-256 MLP on Fashion-MNIST (n_train=1500)",
     )
     return rows, histories
 
 
 def exp_cnn_and_aug(epochs: int) -> list[dict]:
-    flat = load_digits_split(as_images=False)
-    images = load_digits_split(as_images=True)
+    flat = load_fashion_split(as_images=False, seed=1)
+    images = load_fashion_split(as_images=True, seed=1)
     rows = []
 
-    mlp = MLP(64, 10, hidden=(256, 256), dropout=0.0)
+    mlp = MLP(784, 10, hidden=(256, 256), dropout=0.0)
     hist = train_classifier(
         mlp,
         flat.X_train,
         flat.y_train,
         flat.X_val,
         flat.y_val,
-        TrainConfig(epochs=epochs, lr=0.12, batch_size=64, seed=0),
+        TrainConfig(epochs=epochs, lr=0.003, batch_size=64, optimizer="adamw", seed=0),
     )
     met = metrics_for(
         mlp, flat.X_train, flat.y_train, flat.X_val, flat.y_val, flat.X_test, flat.y_test
     )
     rows.append(
         {
-            "experiment": "digits",
+            "experiment": "fashion_cnn",
             "name": "mlp",
             "params": n_params(mlp),
             "train_acc": met.train_acc,
@@ -239,14 +242,14 @@ def exp_cnn_and_aug(epochs: int) -> list[dict]:
         }
     )
 
-    cnn = TinyCNN()
+    cnn = TinyCNN(img_size=28)
     train_classifier(
         cnn,
         images.X_train,
         images.y_train,
         images.X_val,
         images.y_val,
-        TrainConfig(epochs=epochs, lr=0.12, batch_size=64, seed=1),
+        TrainConfig(epochs=epochs, lr=0.003, batch_size=64, optimizer="adamw", seed=1),
     )
     met = metrics_for(
         cnn,
@@ -259,7 +262,7 @@ def exp_cnn_and_aug(epochs: int) -> list[dict]:
     )
     rows.append(
         {
-            "experiment": "digits",
+            "experiment": "fashion_cnn",
             "name": "cnn  (param sharing)",
             "params": n_params(cnn),
             "train_acc": met.train_acc,
@@ -271,19 +274,19 @@ def exp_cnn_and_aug(epochs: int) -> list[dict]:
     X_aug = np.concatenate(
         [
             images.X_train,
-            shift_images(images.X_train, seed=11),
-            shift_images(images.X_train, seed=12),
+            shift_images(images.X_train, max_shift=2, seed=11),
+            shift_images(images.X_train, max_shift=2, seed=12),
         ]
     )
     y_aug = np.concatenate([images.y_train, images.y_train, images.y_train])
-    cnn_aug = TinyCNN()
+    cnn_aug = TinyCNN(img_size=28)
     train_classifier(
         cnn_aug,
         X_aug,
         y_aug,
         images.X_val,
         images.y_val,
-        TrainConfig(epochs=epochs, lr=0.12, batch_size=64, seed=2),
+        TrainConfig(epochs=epochs, lr=0.003, batch_size=64, optimizer="adamw", seed=2),
     )
     met = metrics_for(
         cnn_aug,
@@ -296,7 +299,7 @@ def exp_cnn_and_aug(epochs: int) -> list[dict]:
     )
     rows.append(
         {
-            "experiment": "digits",
+            "experiment": "fashion_cnn",
             "name": "cnn + shift aug",
             "params": n_params(cnn_aug),
             "train_acc": met.train_acc,
@@ -304,30 +307,33 @@ def exp_cnn_and_aug(epochs: int) -> list[dict]:
             "gap": met.gap,
         }
     )
-    short = {
-        "mlp": "mlp 85k",
-        "cnn  (param sharing)": "cnn 3.8k",
-        "cnn + shift aug": "cnn+aug 3.8k",
+    nice = {
+        "mlp": "mlp",
+        "cnn  (param sharing)": "cnn",
+        "cnn + shift aug": "cnn+aug",
     }
-    labeled = [{**r, "name": short.get(r["name"], r["name"])} for r in rows]
+    labeled = [
+        {**r, "name": f"{nice.get(r['name'], r['name'])} {r['params']//1000}k"}
+        for r in rows
+    ]
     plot_comparison_bars(
         labeled,
         "digits_cnn_vs_mlp.png",
-        title="Ch. 7.9 / 7.4: sharing + 1px shifts",
+        title="Fashion-MNIST: sharing + 2px shifts",
     )
     return rows
 
 
 def exp_bagging(epochs: int, n_models: int = 5) -> list[dict]:
-    data = load_digits_split(n_train=80, n_val=200, seed=3)
-    single = _mlp(64, 10, seed=10)
+    data = load_fashion_split(seed=3)
+    single = _mlp(784, 10, seed=10)
     train_classifier(
         single,
         data.X_train,
         data.y_train,
         data.X_val,
         data.y_val,
-        TrainConfig(epochs=epochs, lr=0.02, batch_size=16, optimizer="adamw", seed=10),
+            TrainConfig(epochs=epochs, lr=0.003, batch_size=64, optimizer="adamw", seed=10),
     )
     single_met = metrics_for(
         single, data.X_train, data.y_train, data.X_val, data.y_val, data.X_test, data.y_test
@@ -336,14 +342,14 @@ def exp_bagging(epochs: int, n_models: int = 5) -> list[dict]:
     members = []
     for i in range(n_models):
         idx = bootstrap_indices(len(data.X_train), seed=20 + i)
-        m = _mlp(64, 10, seed=20 + i)
+        m = _mlp(784, 10, seed=20 + i)
         train_classifier(
             m,
             data.X_train[idx],
             data.y_train[idx],
             data.X_val,
             data.y_val,
-            TrainConfig(epochs=epochs, lr=0.02, batch_size=16, optimizer="adamw", seed=20 + i),
+            TrainConfig(epochs=epochs, lr=0.003, batch_size=64, optimizer="adamw", seed=20 + i),
         )
         members.append(m)
 
@@ -367,16 +373,16 @@ def exp_bagging(epochs: int, n_models: int = 5) -> list[dict]:
             "gap": bag_train_acc - bag_test_acc,
         },
     ]
-    plot_comparison_bars(rows, "bagging.png", title="Ch. 7.11: bag of 5 bootstrap MLPs")
+    plot_comparison_bars(rows, "bagging.png", title="Ch. 7.11: bag of bootstrap MLPs")
     return rows
 
 
 def exp_sparse_hidden(epochs: int) -> list[dict]:
-    data = load_digits_split(n_train=80, n_val=200, seed=4)
+    data = load_fashion_split(seed=4)
     rows = []
     hiddens = {}
     for name, act_l1 in [("no act. penalty", 0.0), ("L1 on hidden", 0.15)]:
-        model = _mlp(64, 10, seed=30, activation="tanh", hidden=(64, 64))
+        model = _mlp(784, 10, seed=30, activation="tanh", hidden=(64, 64))
         train_classifier(
             model,
             data.X_train,
@@ -385,8 +391,8 @@ def exp_sparse_hidden(epochs: int) -> list[dict]:
             data.y_val,
             TrainConfig(
                 epochs=epochs,
-                lr=0.02,
-                batch_size=16,
+                lr=0.003,
+                batch_size=64,
                 optimizer="adamw",
                 activation_l1=act_l1,
                 seed=30,
@@ -438,17 +444,24 @@ def _adv_acc(model, X, y, eps: float, batch: int = 128) -> float:
 
 
 def exp_adversarial(epochs: int, eps: float = 0.18) -> list[dict]:
-    data = load_digits_split(as_images=True, n_train=300)
+    data = load_fashion_split(as_images=True, seed=5)
     rows = []
     for name, adv_eps in [("clean train", 0.0), ("FGSM train", eps)]:
-        model = TinyCNN()
+        model = TinyCNN(img_size=28)
         train_classifier(
             model,
             data.X_train,
             data.y_train,
             data.X_val,
             data.y_val,
-            TrainConfig(epochs=epochs, lr=0.12, batch_size=64, adversarial_eps=adv_eps, seed=40),
+            TrainConfig(
+                epochs=epochs,
+                lr=0.003,
+                batch_size=64,
+                optimizer="adamw",
+                adversarial_eps=adv_eps,
+                seed=40,
+            ),
         )
         rows.append(
             {
@@ -474,20 +487,25 @@ def main() -> None:
         "--only",
         nargs="*",
         default=None,
-        help="subset: geometry linear moons digits bagging sparse adv",
+        help="subset: geometry linear mlp cnn bagging sparse adv",
     )
     args = parser.parse_args()
-    epochs = 30 if args.quick else 160
-    digits_epochs = 15 if args.quick else 45
+    epochs = 8 if args.quick else 25
+    cnn_epochs = 6 if args.quick else 15
     wanted = set(args.only) if args.only else {
         "geometry",
         "linear",
-        "moons",
-        "digits",
+        "mlp",
+        "cnn",
         "bagging",
         "sparse",
         "adv",
     }
+    # old aliases
+    if "moons" in wanted:
+        wanted.add("mlp")
+    if "digits" in wanted:
+        wanted.add("cnn")
 
     summary: list[dict] = []
     print(f"device=cpu  epochs={epochs}  results={RESULTS}")
@@ -500,26 +518,26 @@ def main() -> None:
         print(">> linear L1/L2")
         summary.extend(exp_linear())
 
-    if "moons" in wanted:
-        print(">> mlp digits 10-way")
+    if "mlp" in wanted:
+        print(">> mlp Fashion-MNIST")
         rows, _ = exp_mlp_digits(epochs)
         summary.extend(rows)
 
-    if "digits" in wanted:
+    if "cnn" in wanted:
         print(">> cnn vs mlp + aug")
-        summary.extend(exp_cnn_and_aug(digits_epochs))
+        summary.extend(exp_cnn_and_aug(cnn_epochs))
 
     if "bagging" in wanted:
         print(">> bagging")
-        summary.extend(exp_bagging(min(epochs, 50), n_models=5 if not args.quick else 3))
+        summary.extend(exp_bagging(min(epochs, 12), n_models=3 if not args.quick else 2))
 
     if "sparse" in wanted:
         print(">> sparse hidden")
-        summary.extend(exp_sparse_hidden(min(epochs, 50)))
+        summary.extend(exp_sparse_hidden(min(epochs, 15)))
 
     if "adv" in wanted:
         print(">> adversarial FGSM")
-        summary.extend(exp_adversarial(digits_epochs))
+        summary.extend(exp_adversarial(cnn_epochs, eps=0.12))
 
     payload = _jsonable(summary)
     (RESULTS / "summary.json").write_text(json.dumps(payload, indent=2))

@@ -8,3 +8,4 @@ __pycache__/
 *.pt
 *.pth
 .DS_Store
+regularization/data_cache/
