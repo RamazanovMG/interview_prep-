@@ -45,15 +45,17 @@ class MLP(nn.Module):
         hidden: tuple[int, ...] = (128, 128),
         dropout: float = 0.0,
         batch_norm: bool = False,
+        activation: str = "relu",
     ) -> None:
         super().__init__()
+        act: nn.Module = nn.Tanh() if activation == "tanh" else nn.ReLU()
         layers: list[nn.Module] = []
         prev = in_dim
         for width in hidden:
             layers.append(nn.Linear(prev, width))
             if batch_norm:
                 layers.append(nn.BatchNorm1d(width))
-            layers.append(nn.ReLU())
+            layers.append(act.__class__())
             if dropout > 0:
                 # inverted dropout: scales at train time, identity at eval
                 layers.append(nn.Dropout(dropout))

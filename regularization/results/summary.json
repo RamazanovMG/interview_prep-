@@ -1,0 +1,198 @@
+[
+  {
+    "experiment": "diabetes_regression",
+    "name": "OLS",
+    "test_mse": 3237.612,
+    "n_zeros": 0,
+    "ols_closed_form_align": 1.0
+  },
+  {
+    "experiment": "diabetes_regression",
+    "name": "Ridge L2",
+    "test_mse": 3199.3217,
+    "n_zeros": 0,
+    "ols_closed_form_align": 1.0
+  },
+  {
+    "experiment": "diabetes_regression",
+    "name": "Lasso L1",
+    "test_mse": 3178.3326,
+    "n_zeros": 2,
+    "ols_closed_form_align": 1.0
+  },
+  {
+    "experiment": "cancer_logreg",
+    "name": "logreg none",
+    "train_acc": 1.0,
+    "test_acc": 0.9666,
+    "gap": 0.0334,
+    "n_zeros": 0
+  },
+  {
+    "experiment": "cancer_logreg",
+    "name": "logreg L2",
+    "train_acc": 1.0,
+    "test_acc": 0.971,
+    "gap": 0.029,
+    "n_zeros": 0
+  },
+  {
+    "experiment": "cancer_logreg",
+    "name": "logreg L1",
+    "train_acc": 1.0,
+    "test_acc": 0.9399,
+    "gap": 0.0601,
+    "n_zeros": 24
+  },
+  {
+    "experiment": "mlp_digits",
+    "name": "none",
+    "train_acc": 1.0,
+    "val_acc": 0.86,
+    "test_acc": 0.8293,
+    "gap": 0.1707,
+    "best_epoch": 18,
+    "stopped_epoch": 159
+  },
+  {
+    "experiment": "mlp_digits",
+    "name": "l2",
+    "train_acc": 1.0,
+    "val_acc": 0.885,
+    "test_acc": 0.8556,
+    "gap": 0.1444,
+    "best_epoch": 155,
+    "stopped_epoch": 159
+  },
+  {
+    "experiment": "mlp_digits",
+    "name": "l1",
+    "train_acc": 1.0,
+    "val_acc": 0.855,
+    "test_acc": 0.849,
+    "gap": 0.151,
+    "best_epoch": 93,
+    "stopped_epoch": 159
+  },
+  {
+    "experiment": "mlp_digits",
+    "name": "dropout",
+    "train_acc": 1.0,
+    "val_acc": 0.81,
+    "test_acc": 0.8359,
+    "gap": 0.1641,
+    "best_epoch": 50,
+    "stopped_epoch": 159
+  },
+  {
+    "experiment": "mlp_digits",
+    "name": "input_noise",
+    "train_acc": 1.0,
+    "val_acc": 0.85,
+    "test_acc": 0.8603,
+    "gap": 0.1397,
+    "best_epoch": 41,
+    "stopped_epoch": 159
+  },
+  {
+    "experiment": "mlp_digits",
+    "name": "early_stop",
+    "train_acc": 1.0,
+    "val_acc": 0.86,
+    "test_acc": 0.8471,
+    "gap": 0.1529,
+    "best_epoch": 27,
+    "stopped_epoch": 47
+  },
+  {
+    "experiment": "mlp_digits",
+    "name": "label_smooth",
+    "train_acc": 1.0,
+    "val_acc": 0.88,
+    "test_acc": 0.8655,
+    "gap": 0.1345,
+    "best_epoch": 65,
+    "stopped_epoch": 159
+  },
+  {
+    "experiment": "mlp_digits",
+    "name": "l2+dropout",
+    "train_acc": 1.0,
+    "val_acc": 0.83,
+    "test_acc": 0.8484,
+    "gap": 0.1516,
+    "best_epoch": 94,
+    "stopped_epoch": 159
+  },
+  {
+    "experiment": "digits",
+    "name": "mlp",
+    "params": 85002,
+    "train_acc": 1.0,
+    "test_acc": 0.9306,
+    "gap": 0.0694,
+    "stopped_epoch": 44
+  },
+  {
+    "experiment": "digits",
+    "name": "cnn  (param sharing)",
+    "params": 3818,
+    "train_acc": 1.0,
+    "test_acc": 0.9352,
+    "gap": 0.0648
+  },
+  {
+    "experiment": "digits",
+    "name": "cnn + shift aug",
+    "params": 3818,
+    "train_acc": 1.0,
+    "test_acc": 0.9568,
+    "gap": 0.0432
+  },
+  {
+    "experiment": "bagging",
+    "name": "single mlp",
+    "train_acc": 1.0,
+    "test_acc": 0.857,
+    "gap": 0.143
+  },
+  {
+    "experiment": "bagging",
+    "name": "bagging x5",
+    "train_acc": 0.9625,
+    "test_acc": 0.88,
+    "gap": 0.0825
+  },
+  {
+    "experiment": "sparse_hidden",
+    "name": "no act. penalty",
+    "train_acc": 1.0,
+    "test_acc": 0.8392,
+    "gap": 0.1608,
+    "frac_hidden_near_zero": 0.0023,
+    "mean_abs_hidden": 0.8124
+  },
+  {
+    "experiment": "sparse_hidden",
+    "name": "L1 on hidden",
+    "train_acc": 1.0,
+    "test_acc": 0.8293,
+    "gap": 0.1707,
+    "frac_hidden_near_zero": 0.03,
+    "mean_abs_hidden": 0.3747
+  },
+  {
+    "experiment": "adversarial",
+    "name": "clean train",
+    "clean_test_acc": 0.9503,
+    "fgsm_test_acc": 0.2638,
+    "train_acc": 1.0
+  },
+  {
+    "experiment": "adversarial",
+    "name": "FGSM train",
+    "clean_test_acc": 0.9487,
+    "fgsm_test_acc": 0.5934,
+    "train_acc": 0.9933
+  }
+]

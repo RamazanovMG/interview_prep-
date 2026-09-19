@@ -1,11 +1,17 @@
-"""Synthetic + sklearn datasets sized so an unregularized net can overfit."""
+"""sklearn built-ins only — nothing is synthesized, nothing is downloaded.
+
+- diabetes: linear L1/L2
+- breast_cancer: logistic L1/L2
+- digits 3-vs-8: MLP regularizers / bagging / sparse hidden
+- digits 10-way 8x8: CNN, aug, FGSM
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 import numpy as np
-from sklearn.datasets import load_digits, make_classification, make_moons
+from sklearn.datasets import load_breast_cancer, load_diabetes, load_digits
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
@@ -20,146 +26,112 @@ class Split:
     y_test: np.ndarray
     n_features: int
     n_classes: int
+    feature_names: tuple[str, ...] = ()
 
 
-def _as_float32(*arrays: np.ndarray) -> tuple[np.ndarray, ...]:
-    return tuple(a.astype(np.float32) for a in arrays)
-
-
-def make_sparse_regression(
-    n_train: int = 80,
-    n_val: int = 80,
-    n_test: int = 400,
-    n_features: int = 120,
-    n_informative: int = 12,
-    noise: float = 0.5,
-    seed: int = 0,
-) -> tuple[Split, np.ndarray]:
-    """High-p, low-n regression. Only `n_informative` weights are nonzero."""
-    rng = np.random.default_rng(seed)
-    n = n_train + n_val + n_test
-    X = rng.normal(size=(n, n_features))
-    true_w = np.zeros(n_features, dtype=np.float64)
-    true_w[:n_informative] = rng.normal(scale=1.5, size=n_informative)
-    y = X @ true_w + rng.normal(scale=noise, size=n)
-
+def _split_xy(
+    X: np.ndarray,
+    y: np.ndarray,
+    n_train: int,
+    n_val: int,
+    seed: int,
+    stratify: bool,
+    scale: bool,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    strat = y if stratify else None
     X_train, X_tmp, y_train, y_tmp = train_test_split(
-        X, y, train_size=n_train, random_state=seed
+        X, y, train_size=n_train, stratify=strat, random_state=seed
     )
+    strat_tmp = y_tmp if stratify else None
     X_val, X_test, y_val, y_test = train_test_split(
-        X_tmp, y_tmp, train_size=n_val, random_state=seed + 1
+        X_tmp, y_tmp, train_size=n_val, stratify=strat_tmp, random_state=seed + 1
     )
-    scaler = StandardScaler().fit(X_train)
-    X_train, X_val, X_test = (
-        scaler.transform(X_train),
-        scaler.transform(X_val),
-        scaler.transform(X_test),
-    )
-    X_train, X_val, X_test = _as_float32(X_train, X_val, X_test)
-    y_train, y_val, y_test = _as_float32(y_train, y_val, y_test)
-    split = Split(X_train, y_train, X_val, y_val, X_test, y_test, n_features, 1)
-    return split, true_w
+    if scale:
+        scaler = StandardScaler().fit(X_train)
+        X_train, X_val, X_test = (
+            scaler.transform(X_train),
+            scaler.transform(X_val),
+            scaler.transform(X_test),
+        )
+    return X_train, y_train, X_val, y_val, X_test, y_test
 
 
-def make_sparse_classification(
-    n_train: int = 120,
-    n_val: int = 80,
-    n_test: int = 400,
-    n_features: int = 80,
-    n_informative: int = 8,
-    seed: int = 0,
+def load_diabetes_split(
+    n_train: int = 80, n_val: int = 80, seed: int = 0
 ) -> Split:
-    X, y = make_classification(
-        n_samples=n_train + n_val + n_test,
-        n_features=n_features,
-        n_informative=n_informative,
-        n_redundant=0,
-        n_repeated=0,
-        n_classes=2,
-        class_sep=1.2,
-        flip_y=0.05,
-        random_state=seed,
-    )
-    X_train, X_tmp, y_train, y_tmp = train_test_split(
-        X, y, train_size=n_train, stratify=y, random_state=seed
-    )
-    X_val, X_test, y_val, y_test = train_test_split(
-        X_tmp, y_tmp, train_size=n_val, stratify=y_tmp, random_state=seed + 1
-    )
-    scaler = StandardScaler().fit(X_train)
-    X_train, X_val, X_test = _as_float32(
-        scaler.transform(X_train), scaler.transform(X_val), scaler.transform(X_test)
+    bunch = load_diabetes()
+    Xtr, ytr, Xva, yva, Xte, yte = _split_xy(
+        bunch.data.astype(np.float64),
+        bunch.target.astype(np.float64),
+        n_train,
+        n_val,
+        seed,
+        stratify=False,
+        scale=True,
     )
     return Split(
-        X_train,
-        y_train.astype(np.int64),
-        X_val,
-        y_val.astype(np.int64),
-        X_test,
-        y_test.astype(np.int64),
-        n_features,
-        2,
+        Xtr, ytr, Xva, yva, Xte, yte, Xtr.shape[1], 1, tuple(bunch.feature_names)
     )
 
 
-def make_overfit_moons(
-    n_train: int = 70,
+def load_cancer_split(
+    n_train: int = 40, n_val: int = 80, seed: int = 0
+) -> Split:
+    bunch = load_breast_cancer()
+    Xtr, ytr, Xva, yva, Xte, yte = _split_xy(
+        bunch.data.astype(np.float32),
+        bunch.target.astype(np.int64),
+        n_train,
+        n_val,
+        seed,
+        stratify=True,
+        scale=True,
+    )
+    return Split(
+        Xtr, ytr, Xva, yva, Xte, yte, Xtr.shape[1], 2, tuple(bunch.feature_names)
+    )
+
+
+def load_digits_pair(
+    a: int = 3,
+    b: int = 8,
+    n_train: int = 50,
     n_val: int = 80,
-    n_test: int = 400,
-    noise: float = 0.28,
-    label_flip: float = 0.12,
     seed: int = 0,
 ) -> Split:
-    """2-D moons, tiny train set + label noise → a wide MLP memorizes."""
-    rng = np.random.default_rng(seed)
-    X, y = make_moons(
-        n_samples=n_train + n_val + n_test, noise=noise, random_state=seed
+    """Real 8x8 digits, two classes. Small train split so a wide net can memorize."""
+    digits = load_digits()
+    mask = (digits.target == a) | (digits.target == b)
+    X = (digits.data[mask] / 16.0).astype(np.float32)
+    y = (digits.target[mask] == b).astype(np.int64)
+    n_val = min(n_val, len(y) - n_train - 40)
+    Xtr, ytr, Xva, yva, Xte, yte = _split_xy(
+        X, y, n_train, n_val, seed, stratify=True, scale=False
     )
-    X_train, X_tmp, y_train, y_tmp = train_test_split(
-        X, y, train_size=n_train, stratify=y, random_state=seed
-    )
-    X_val, X_test, y_val, y_test = train_test_split(
-        X_tmp, y_tmp, train_size=n_val, stratify=y_tmp, random_state=seed + 1
-    )
-    flip = rng.random(len(y_train)) < label_flip
-    y_train = y_train.copy()
-    y_train[flip] = 1 - y_train[flip]
-    return Split(
-        X_train.astype(np.float32),
-        y_train.astype(np.int64),
-        X_val.astype(np.float32),
-        y_val.astype(np.int64),
-        X_test.astype(np.float32),
-        y_test.astype(np.int64),
-        2,
-        2,
-    )
+    return Split(Xtr, ytr, Xva, yva, Xte, yte, 64, 2, ())
 
 
-def make_digits_split(
+def load_digits_split(
     n_train: int = 250,
     n_val: int = 250,
     seed: int = 0,
     as_images: bool = False,
 ) -> Split:
     digits = load_digits()
-    X = digits.data.astype(np.float32) / 16.0
+    X = (digits.data / 16.0).astype(np.float32)
     y = digits.target.astype(np.int64)
-    X_train, X_tmp, y_train, y_tmp = train_test_split(
-        X, y, train_size=n_train, stratify=y, random_state=seed
-    )
-    X_val, X_test, y_val, y_test = train_test_split(
-        X_tmp, y_tmp, train_size=n_val, stratify=y_tmp, random_state=seed + 1
+    Xtr, ytr, Xva, yva, Xte, yte = _split_xy(
+        X, y, n_train, n_val, seed, stratify=True, scale=False
     )
     if as_images:
-        X_train = X_train.reshape(-1, 1, 8, 8)
-        X_val = X_val.reshape(-1, 1, 8, 8)
-        X_test = X_test.reshape(-1, 1, 8, 8)
-    return Split(X_train, y_train, X_val, y_val, X_test, y_test, 64, 10)
+        Xtr = Xtr.reshape(-1, 1, 8, 8)
+        Xva = Xva.reshape(-1, 1, 8, 8)
+        Xte = Xte.reshape(-1, 1, 8, 8)
+    return Split(Xtr, ytr, Xva, yva, Xte, yte, 64, 10, ())
 
 
 def shift_images(images: np.ndarray, max_shift: int = 1, seed: int = 0) -> np.ndarray:
-    """§7.4: small translations. Do not flip — 6/9 would swap class."""
+    """ch. 7.4: small translations. Do not flip — 6/9 would swap class."""
     rng = np.random.default_rng(seed)
     out = np.empty_like(images)
     for i, img in enumerate(images):

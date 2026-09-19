@@ -35,6 +35,7 @@ class TrainConfig:
     restore_best: bool = False
     seed: int = 0
     momentum: float = 0.9
+    optimizer: str = "sgd"
 
 
 @dataclass
@@ -102,14 +103,16 @@ def train_classifier(
     set_seed(cfg.seed)
     train_loader = _loader(X_train, y_train, cfg.batch_size, shuffle=True)
     val_loader = _loader(X_val, y_val, max(64, cfg.batch_size), shuffle=False)
-    opt = torch.optim.SGD(
-        decay_param_groups(model, cfg.weight_decay),
-        lr=cfg.lr,
-        momentum=cfg.momentum,
-    )
+    groups = decay_param_groups(model, cfg.weight_decay)
+    if cfg.optimizer == "adamw":
+        opt = torch.optim.AdamW(groups, lr=cfg.lr)
+    elif cfg.optimizer == "adam":
+        opt = torch.optim.Adam(groups, lr=cfg.lr)
+    else:
+        opt = torch.optim.SGD(groups, lr=cfg.lr, momentum=cfg.momentum)
     history = History()
     best_state = copy.deepcopy(model.state_dict())
-    best_val = float("inf")
+    best_val = -float("inf")
     stale = 0
 
     for epoch in range(cfg.epochs):
@@ -152,14 +155,19 @@ def train_classifier(
         history.val_loss.append(va_loss)
         history.val_acc.append(va_acc)
 
-        if va_loss < best_val - 1e-6:
-            best_val = va_loss
+        # classification: maximize val acc (val loss can dip before the net has learned)
+        if va_acc > best_val + 1e-6:
+            best_val = va_acc
             best_state = copy.deepcopy(model.state_dict())
             history.best_epoch = epoch
             stale = 0
         else:
             stale += 1
-            if cfg.early_stop_patience is not None and stale >= cfg.early_stop_patience:
+            if (
+                cfg.early_stop_patience is not None
+                and epoch >= 10
+                and stale >= cfg.early_stop_patience
+            ):
                 history.stopped_epoch = epoch
                 break
         history.stopped_epoch = epoch

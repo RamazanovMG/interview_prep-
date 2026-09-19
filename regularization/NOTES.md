@@ -190,15 +190,17 @@ Prior: the decision function should be invariant along the data manifold’s tan
 
 ## Experiment map
 
-| run | book | artifact |
-|---|---|---|
-| geometry | 7.1–7.2, eqs 7.13 / 7.23 | `fig71_l2_geometry.png`, `l1_l2_constraint_sets.png`, `l1_vs_l2_shrinkage.png` |
-| linear | 7.1, 7.3 | `linear_weights.png` |
-| moons MLP | 7.1, 7.5, 7.8, 7.12 | `mlp_boundaries.png`, `learning_curves.png`, `comparison_bars.png` |
-| digits CNN / aug | 7.4, 7.9 | `digits_cnn_vs_mlp.png` |
-| bagging | 7.11 | `bagging.png` |
-| sparse hidden | 7.10 | `activation_sparsity.png` |
-| FGSM | 7.13 | `adversarial.png` |
+| run | book | data | artifact |
+|---|---|---|---|
+| geometry | 7.1–7.2, eqs 7.13 / 7.23 | closed form | `fig71_l2_geometry.png`, `l1_l2_constraint_sets.png`, `l1_vs_l2_shrinkage.png` |
+| linear | 7.1, 7.3 | sklearn diabetes + breast_cancer | `linear_weights.png`, `cancer_weights.png` |
+| MLP regularizers | 7.1, 7.5, 7.8, 7.12 | sklearn digits 10-way, n=80 | `mlp_boundaries.png`, `learning_curves.png`, `comparison_bars.png` |
+| CNN / aug | 7.4, 7.9 | sklearn digits 10-way | `digits_cnn_vs_mlp.png` |
+| bagging | 7.11 | digits 10-way | `bagging.png` |
+| sparse hidden | 7.10 | digits 10-way | `activation_sparsity.png` |
+| FGSM | 7.13 | digits 10-way | `adversarial.png` |
+
+No synthetic samples. `sklearn.datasets` only (`load_diabetes`, `load_breast_cancer`, `load_digits`).
 
 ## Interview questions this folder is for
 

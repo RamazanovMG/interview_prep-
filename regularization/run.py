@@ -16,20 +16,21 @@ sys.path.insert(0, str(ROOT))
 
 from closed_form import ridge_normal_equation  # noqa: E402
 from data import (  # noqa: E402
-    make_digits_split,
-    make_overfit_moons,
-    make_sparse_classification,
-    make_sparse_regression,
+    load_cancer_split,
+    load_diabetes_split,
+    load_digits_split,
     shift_images,
 )
 from models import MLP, TinyCNN, fgsm, n_params  # noqa: E402
 from plots import (  # noqa: E402
     RESULTS,
+    plot_adversarial,
     plot_comparison_bars,
     plot_constraint_sets,
     plot_decision_boundaries,
     plot_l2_geometry,
     plot_learning_curves,
+    plot_linear_mse,
     plot_shrinkage_1d,
     plot_sparsity_hist,
     plot_weight_stems,
@@ -64,30 +65,30 @@ def exp_geometry() -> list[Path]:
 
 
 def exp_linear() -> list[dict]:
-    split, true_w = make_sparse_regression()
-    ols = LinearRegression(fit_intercept=False).fit(split.X_train, split.y_train)
-    ridge = Ridge(alpha=12.0, fit_intercept=False).fit(split.X_train, split.y_train)
-    lasso = Lasso(alpha=0.12, fit_intercept=False, max_iter=20000).fit(
-        split.X_train, split.y_train
+    split = load_diabetes_split()
+    ols = LinearRegression().fit(split.X_train, split.y_train)
+    ridge = Ridge(alpha=2.0).fit(split.X_train, split.y_train)
+    lasso = Lasso(alpha=0.8, max_iter=20000).fit(split.X_train, split.y_train)
+    closed = ridge_normal_equation(
+        np.c_[split.X_train, np.ones(len(split.X_train))],
+        split.y_train,
+        alpha=0.0,
     )
-    closed = ridge_normal_equation(split.X_train, split.y_train, alpha=12.0)
-    # closed form should match sklearn Ridge (same objective up to 1/n scaling —
-    # Ridge uses α||w||^2, so we only check cosine alignment)
+    # closed-form unregularized (with bias column) should track OLS
     align = float(
-        np.dot(closed, ridge.coef_)
-        / (np.linalg.norm(closed) * np.linalg.norm(ridge.coef_) + 1e-12)
+        np.dot(closed[:-1], ols.coef_)
+        / (np.linalg.norm(closed[:-1]) * np.linalg.norm(ols.coef_) + 1e-12)
     )
 
     estimates = {
         "OLS  (α=0)": ols.coef_,
-        "Ridge L2  α=12": ridge.coef_,
-        "Lasso L1  α=0.12": lasso.coef_,
+        "Ridge L2  α=2": ridge.coef_,
+        "Lasso L1  α=0.8": lasso.coef_,
     }
-    plot_weight_stems(true_w, estimates)
+    plot_weight_stems(estimates, feature_names=split.feature_names)
 
     def mse(model, X, y) -> float:
-        pred = model.predict(X)
-        return float(np.mean((pred - y) ** 2))
+        return float(np.mean((model.predict(X) - y) ** 2))
 
     rows = []
     for name, model in [
@@ -98,77 +99,87 @@ def exp_linear() -> list[dict]:
         w = model.coef_
         rows.append(
             {
-                "experiment": "linear_regression",
+                "experiment": "diabetes_regression",
                 "name": name,
                 "test_mse": mse(model, split.X_test, split.y_test),
-                "l2_to_truth": float(np.linalg.norm(w - true_w)),
                 "n_zeros": int(np.sum(np.abs(w) < 1e-6)),
-                "ridge_closed_form_align": align,
+                "ols_closed_form_align": align,
             }
         )
+    plot_linear_mse(rows)
 
-    clf = make_sparse_classification()
-    for name, model in [
-        (
-            "logreg none",
-            LogisticRegression(penalty=None, max_iter=4000, random_state=0),
+    clf = load_cancer_split()
+    logregs = {
+        "logreg none": LogisticRegression(C=np.inf, max_iter=4000, random_state=0),
+        "logreg L2": LogisticRegression(C=0.5, l1_ratio=0.0, max_iter=4000, random_state=0),
+        "logreg L1": LogisticRegression(
+            C=0.8, l1_ratio=1.0, solver="saga", max_iter=8000, random_state=0
         ),
-        (
-            "logreg L2",
-            LogisticRegression(penalty="l2", C=0.15, max_iter=4000, random_state=0),
-        ),
-        (
-            "logreg L1",
-            LogisticRegression(
-                penalty="l1", solver="saga", C=0.15, max_iter=8000, random_state=0
-            ),
-        ),
-    ]:
+    }
+    cancer_weights = {}
+    for name, model in logregs.items():
         model.fit(clf.X_train, clf.y_train)
+        cancer_weights[name] = model.coef_.ravel()
         rows.append(
             {
-                "experiment": "linear_classification",
+                "experiment": "cancer_logreg",
                 "name": name,
                 "train_acc": float(model.score(clf.X_train, clf.y_train)),
                 "test_acc": float(model.score(clf.X_test, clf.y_test)),
-                "gap": float(model.score(clf.X_train, clf.y_train) - model.score(clf.X_test, clf.y_test)),
+                "gap": float(
+                    model.score(clf.X_train, clf.y_train)
+                    - model.score(clf.X_test, clf.y_test)
+                ),
                 "n_zeros": int(np.sum(np.abs(model.coef_) < 1e-4)),
             }
         )
+    plot_weight_stems(
+        cancer_weights, path="cancer_weights.png", feature_names=clf.feature_names
+    )
     return rows
 
 
-def _mlp(in_dim: int, n_classes: int, dropout: float = 0.0, seed: int = 0) -> MLP:
+def _mlp(
+    in_dim: int,
+    n_classes: int,
+    dropout: float = 0.0,
+    seed: int = 0,
+    hidden: tuple[int, ...] = (256, 256),
+    activation: str = "relu",
+) -> MLP:
     torch.manual_seed(seed)
-    return MLP(in_dim, n_classes, hidden=(128, 128), dropout=dropout)
+    return MLP(in_dim, n_classes, hidden=hidden, dropout=dropout, activation=activation)
 
 
-def exp_mlp_moons(epochs: int) -> tuple[list[dict], dict]:
-    data = make_overfit_moons()
+def exp_mlp_digits(epochs: int) -> tuple[list[dict], dict]:
+    from sklearn.decomposition import PCA
+
+    data = load_digits_split(n_train=80, n_val=200)
+    pca = PCA(2, random_state=0).fit(data.X_train)
+    base = dict(epochs=epochs, lr=0.02, batch_size=16, optimizer="adamw")
     specs = {
-        "none": (0.0, TrainConfig(epochs=epochs, lr=0.08, restore_best=False, seed=0)),
-        "l2": (0.0, TrainConfig(epochs=epochs, lr=0.08, weight_decay=0.025, seed=1)),
-        "l1": (0.0, TrainConfig(epochs=epochs, lr=0.08, l1=1.5e-3, seed=2)),
-        "dropout": (0.5, TrainConfig(epochs=epochs, lr=0.08, seed=3)),
-        "input_noise": (0.0, TrainConfig(epochs=epochs, lr=0.08, input_noise=0.18, seed=4)),
+        "none": (0.0, TrainConfig(**base, restore_best=False, seed=0)),
+        "l2": (0.0, TrainConfig(**base, weight_decay=0.04, seed=1)),
+        "l1": (0.0, TrainConfig(**base, l1=8e-4, seed=2)),
+        "dropout": (0.5, TrainConfig(**base, seed=3)),
+        "input_noise": (0.0, TrainConfig(**base, input_noise=0.15, seed=4)),
         "early_stop": (
             0.0,
             TrainConfig(
-                epochs=epochs,
-                lr=0.08,
-                early_stop_patience=12,
+                **base,
+                early_stop_patience=20,
                 restore_best=True,
                 seed=5,
             ),
         ),
-        "label_smooth": (0.0, TrainConfig(epochs=epochs, lr=0.08, label_smoothing=0.12, seed=6)),
-        "l2+dropout": (0.4, TrainConfig(epochs=epochs, lr=0.08, weight_decay=0.012, seed=7)),
+        "label_smooth": (0.0, TrainConfig(**base, label_smoothing=0.1, seed=6)),
+        "l2+dropout": (0.4, TrainConfig(**base, weight_decay=0.02, seed=7)),
     }
     models = {}
     histories = {}
     rows = []
     for name, (dropout, cfg) in specs.items():
-        model = _mlp(2, 2, dropout=dropout, seed=cfg.seed)
+        model = _mlp(64, 10, dropout=dropout, seed=cfg.seed)
         hist = train_classifier(model, data.X_train, data.y_train, data.X_val, data.y_val, cfg)
         met = metrics_for(
             model, data.X_train, data.y_train, data.X_val, data.y_val, data.X_test, data.y_test
@@ -177,7 +188,7 @@ def exp_mlp_moons(epochs: int) -> tuple[list[dict], dict]:
         histories[name] = hist
         rows.append(
             {
-                "experiment": "mlp_moons",
+                "experiment": "mlp_digits",
                 "name": name,
                 "train_acc": met.train_acc,
                 "val_acc": met.val_acc,
@@ -187,17 +198,21 @@ def exp_mlp_moons(epochs: int) -> tuple[list[dict], dict]:
                 "stopped_epoch": hist.stopped_epoch,
             }
         )
-    plot_decision_boundaries(models, data.X_train, data.y_train)
+    plot_decision_boundaries(models, data.X_train, data.y_train, pca=pca)
     plot_learning_curves(
         {k: histories[k] for k in ("none", "l2", "dropout", "early_stop")}
     )
-    plot_comparison_bars(rows, "comparison_bars.png")
+    plot_comparison_bars(
+        rows,
+        "comparison_bars.png",
+        title="256-256 MLP on sklearn digits 10-way (n_train=80)",
+    )
     return rows, histories
 
 
 def exp_cnn_and_aug(epochs: int) -> list[dict]:
-    flat = make_digits_split(as_images=False)
-    images = make_digits_split(as_images=True)
+    flat = load_digits_split(as_images=False)
+    images = load_digits_split(as_images=True)
     rows = []
 
     mlp = MLP(64, 10, hidden=(256, 256), dropout=0.0)
@@ -289,20 +304,30 @@ def exp_cnn_and_aug(epochs: int) -> list[dict]:
             "gap": met.gap,
         }
     )
-    plot_comparison_bars(rows, "digits_cnn_vs_mlp.png")
+    short = {
+        "mlp": "mlp 85k",
+        "cnn  (param sharing)": "cnn 3.8k",
+        "cnn + shift aug": "cnn+aug 3.8k",
+    }
+    labeled = [{**r, "name": short.get(r["name"], r["name"])} for r in rows]
+    plot_comparison_bars(
+        labeled,
+        "digits_cnn_vs_mlp.png",
+        title="Ch. 7.9 / 7.4: sharing + 1px shifts",
+    )
     return rows
 
 
 def exp_bagging(epochs: int, n_models: int = 5) -> list[dict]:
-    data = make_overfit_moons(seed=3)
-    single = _mlp(2, 2, seed=10)
+    data = load_digits_split(n_train=80, n_val=200, seed=3)
+    single = _mlp(64, 10, seed=10)
     train_classifier(
         single,
         data.X_train,
         data.y_train,
         data.X_val,
         data.y_val,
-        TrainConfig(epochs=epochs, lr=0.08, seed=10),
+        TrainConfig(epochs=epochs, lr=0.02, batch_size=16, optimizer="adamw", seed=10),
     )
     single_met = metrics_for(
         single, data.X_train, data.y_train, data.X_val, data.y_val, data.X_test, data.y_test
@@ -311,14 +336,14 @@ def exp_bagging(epochs: int, n_models: int = 5) -> list[dict]:
     members = []
     for i in range(n_models):
         idx = bootstrap_indices(len(data.X_train), seed=20 + i)
-        m = _mlp(2, 2, seed=20 + i)
+        m = _mlp(64, 10, seed=20 + i)
         train_classifier(
             m,
             data.X_train[idx],
             data.y_train[idx],
             data.X_val,
             data.y_val,
-            TrainConfig(epochs=epochs, lr=0.08, seed=20 + i),
+            TrainConfig(epochs=epochs, lr=0.02, batch_size=16, optimizer="adamw", seed=20 + i),
         )
         members.append(m)
 
@@ -342,29 +367,36 @@ def exp_bagging(epochs: int, n_models: int = 5) -> list[dict]:
             "gap": bag_train_acc - bag_test_acc,
         },
     ]
-    plot_comparison_bars(rows, "bagging.png")
+    plot_comparison_bars(rows, "bagging.png", title="Ch. 7.11: bag of 5 bootstrap MLPs")
     return rows
 
 
 def exp_sparse_hidden(epochs: int) -> list[dict]:
-    data = make_overfit_moons(seed=4)
+    data = load_digits_split(n_train=80, n_val=200, seed=4)
     rows = []
     hiddens = {}
-    for name, act_l1 in [("no act. penalty", 0.0), ("L1 on hidden", 0.08)]:
-        model = _mlp(2, 2, seed=30)
+    for name, act_l1 in [("no act. penalty", 0.0), ("L1 on hidden", 0.15)]:
+        model = _mlp(64, 10, seed=30, activation="tanh", hidden=(64, 64))
         train_classifier(
             model,
             data.X_train,
             data.y_train,
             data.X_val,
             data.y_val,
-            TrainConfig(epochs=epochs, lr=0.08, activation_l1=act_l1, seed=30),
+            TrainConfig(
+                epochs=epochs,
+                lr=0.02,
+                batch_size=16,
+                optimizer="adamw",
+                activation_l1=act_l1,
+                seed=30,
+            ),
         )
         model.eval()
         with torch.no_grad():
             _, h = model(torch.from_numpy(data.X_test), return_hidden=True)
         hiddens[name] = h.numpy()
-        frac_zero = float(np.mean(np.abs(h.numpy()) < 1e-3))
+        h_np = h.numpy()
         met = metrics_for(
             model, data.X_train, data.y_train, data.X_val, data.y_val, data.X_test, data.y_test
         )
@@ -375,7 +407,8 @@ def exp_sparse_hidden(epochs: int) -> list[dict]:
                 "train_acc": met.train_acc,
                 "test_acc": met.test_acc,
                 "gap": met.gap,
-                "frac_hidden_near_zero": frac_zero,
+                "frac_hidden_near_zero": float(np.mean(np.abs(h_np) < 1e-2)),
+                "mean_abs_hidden": float(np.mean(np.abs(h_np))),
             }
         )
     plot_sparsity_hist(hiddens["no act. penalty"], hiddens["L1 on hidden"])
@@ -405,7 +438,7 @@ def _adv_acc(model, X, y, eps: float, batch: int = 128) -> float:
 
 
 def exp_adversarial(epochs: int, eps: float = 0.18) -> list[dict]:
-    data = make_digits_split(as_images=True, n_train=300)
+    data = load_digits_split(as_images=True, n_train=300)
     rows = []
     for name, adv_eps in [("clean train", 0.0), ("FGSM train", eps)]:
         model = TinyCNN()
@@ -426,25 +459,7 @@ def exp_adversarial(epochs: int, eps: float = 0.18) -> list[dict]:
                 "train_acc": _acc(model, data.X_train, data.y_train),
             }
         )
-    # reuse bar helper: map to train/test keys
-    bar_rows = [
-        {
-            "name": r["name"] + " clean",
-            "train_acc": r["train_acc"],
-            "test_acc": r["clean_test_acc"],
-            "gap": r["train_acc"] - r["clean_test_acc"],
-        }
-        for r in rows
-    ] + [
-        {
-            "name": r["name"] + " FGSM",
-            "train_acc": r["train_acc"],
-            "test_acc": r["fgsm_test_acc"],
-            "gap": r["train_acc"] - r["fgsm_test_acc"],
-        }
-        for r in rows
-    ]
-    plot_comparison_bars(bar_rows, "adversarial.png")
+    plot_adversarial(rows)
     return rows
 
 
@@ -462,8 +477,8 @@ def main() -> None:
         help="subset: geometry linear moons digits bagging sparse adv",
     )
     args = parser.parse_args()
-    epochs = 25 if args.quick else 80
-    digits_epochs = 15 if args.quick else 40
+    epochs = 30 if args.quick else 160
+    digits_epochs = 15 if args.quick else 45
     wanted = set(args.only) if args.only else {
         "geometry",
         "linear",
@@ -486,8 +501,8 @@ def main() -> None:
         summary.extend(exp_linear())
 
     if "moons" in wanted:
-        print(">> mlp moons regularizers")
-        rows, _ = exp_mlp_moons(epochs)
+        print(">> mlp digits 10-way")
+        rows, _ = exp_mlp_digits(epochs)
         summary.extend(rows)
 
     if "digits" in wanted:
