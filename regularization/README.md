@@ -11,11 +11,13 @@ No generated data.
 ```
 python -m pip install -r requirements.txt
 python test_closed_form.py
-jupyter notebook regularization.ipynb   # cell-by-cell walkthrough, knobs per technique
+jupyter notebook regularization.ipynb   # or open the ipynb in Cursor
 python run.py                           # full batch sweep (downloads Fashion-MNIST on first run)
 python run.py --quick
 python run.py --only geometry linear
 ```
+
+**Notebook:** open `regularization.ipynb` → pick a Python 3 kernel → **Shift+Enter** through cells. **Ctrl/Cmd+Enter** re-runs the current cell after you change a knob. Geometry + linear sections are instant and mark L1 zeros as red ×; Fashion cells train a net.
 
 `TrainConfig.weight_decay` hits weights only (ch. 7.1: leave biases alone).
 
