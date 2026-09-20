@@ -31,6 +31,7 @@ class TrainConfig:
     input_noise: float = 0.0
     label_smoothing: float = 0.0
     early_stop_patience: int | None = None
+    early_stop_min_epoch: int = 10
     adversarial_eps: float = 0.0
     restore_best: bool = False
     seed: int = 0
@@ -165,7 +166,7 @@ def train_classifier(
             stale += 1
             if (
                 cfg.early_stop_patience is not None
-                and epoch >= 10
+                and epoch >= cfg.early_stop_min_epoch
                 and stale >= cfg.early_stop_patience
             ):
                 history.stopped_epoch = epoch

@@ -11,7 +11,8 @@ No generated data.
 ```
 python -m pip install -r requirements.txt
 python test_closed_form.py
-python run.py              # first run downloads Fashion-MNIST, then trains
+jupyter notebook regularization.ipynb   # cell-by-cell walkthrough, knobs per technique
+python run.py                           # full batch sweep (downloads Fashion-MNIST on first run)
 python run.py --quick
 python run.py --only geometry linear
 ```
