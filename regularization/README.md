@@ -17,7 +17,7 @@ python run.py --quick
 python run.py --only geometry linear
 ```
 
-**Notebook:** open `regularization.ipynb` → pick a Python 3 kernel → **Shift+Enter** through cells. **Ctrl/Cmd+Enter** re-runs the current cell after you change a knob. Geometry + linear sections are instant and mark L1 zeros as red ×; Fashion cells train a net.
+**Notebook:** open `regularization.ipynb` in Cursor's **Editor Window** (File → Open Editor Window). Pick a Python 3 kernel → **Shift+Enter**. Geometry cells have **α sliders**; training cells use knobs + Ctrl/Cmd+Enter. If you see JSON, you're in the Agents Window — that view cannot render notebooks.
 
 `TrainConfig.weight_decay` hits weights only (ch. 7.1: leave biases alone).
 

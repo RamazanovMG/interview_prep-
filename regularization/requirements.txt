@@ -5,3 +5,4 @@ torch>=2.1
 jupyter>=1.0
 ipykernel>=6.0
 nbformat>=5.0
+ipywidgets>=8.0

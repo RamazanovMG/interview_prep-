@@ -8,9 +8,153 @@ import torch.nn.functional as F
 from matplotlib import pyplot as plt
 from sklearn.linear_model import Lasso, LogisticRegression
 
+from closed_form import l1_soft_threshold, l2_shrink_diag, l2_shrink_eigen
 from models import fgsm
 
 ZERO = 1e-4
+
+try:
+    from ipywidgets import FloatSlider, interact as _interact
+
+    HAS_WIDGETS = True
+except Exception:
+    FloatSlider = None  # type: ignore[misc, assignment]
+    _interact = None
+    HAS_WIDGETS = False
+
+
+def fslider(
+    value: float,
+    min: float,
+    max: float,
+    step: float,
+    description: str,
+    continuous_update: bool = True,
+):
+    """ipywidgets slider, or the default float if widgets aren't installed."""
+    if HAS_WIDGETS:
+        return FloatSlider(
+            value=value,
+            min=min,
+            max=max,
+            step=step,
+            description=description,
+            continuous_update=continuous_update,
+            readout_format=".3g",
+            style={"description_width": "initial"},
+            layout={"width": "72%"},
+        )
+    return float(value)
+
+
+def play(fn, **kwargs) -> None:
+    """Bind sliders to `fn`. Falls back to one shot at the default values."""
+    if HAS_WIDGETS:
+        _interact(fn, **kwargs)
+        return
+    print("pip install ipywidgets  — then re-run setup for sliders")
+    fn(**{k: getattr(v, "value", v) for k, v in kwargs.items()})
+
+
+def l2_geometry(alpha: float = 0.55) -> None:
+    """Fig 7.1: poorly determined axis gets smashed; well-determined axis barely moves."""
+    w_star = np.array([1.8, 0.7])
+    H = np.diag([0.15, 2.4])
+    alpha = max(float(alpha), 1e-8)
+    w_t = l2_shrink_eigen(w_star, H, alpha)
+    scale = np.diag(H) / (np.diag(H) + alpha)
+    print(f"w*      {w_star}")
+    print(f"w_tilde {np.round(w_t, 3)}")
+    print(f"λ/(λ+α) {np.round(scale, 3)}   (w1 poorly determined, w2 pinned)")
+
+    w1 = np.linspace(-0.6, 2.4, 240)
+    w2 = np.linspace(-1.2, 1.8, 240)
+    W1, W2 = np.meshgrid(w1, w2)
+    delta = np.stack([W1 - w_star[0], W2 - w_star[1]], axis=-1)
+    J = 0.5 * np.einsum("...i,ij,...j->...", delta, H, delta)
+    R = 0.5 * (W1**2 + W2**2)
+
+    fig, ax = plt.subplots(figsize=(5.8, 5.2), layout="constrained")
+    ax.contour(W1, W2, J, levels=8, colors="#1f77b4")
+    ax.contour(W1, W2, R, levels=8, colors="#d62728", linestyles="--")
+    ax.plot(*w_star, "o", color="#1f77b4", ms=9, label=r"$w^*$ unregularized")
+    ax.plot(*w_t, "s", color="#d62728", ms=9, label=r"$\tilde{w}$ with $L_2$")
+    ax.annotate("", xy=w_t, xytext=w_star, arrowprops=dict(arrowstyle="->", color="#333", lw=1.4))
+    ax.axhline(0, color="#ccc", lw=0.6)
+    ax.axvline(0, color="#ccc", lw=0.6)
+    ax.set_xlabel(r"$w_1$ poorly determined ($\lambda=0.15$)")
+    ax.set_ylabel(r"$w_2$ well determined ($\lambda=2.4$)")
+    ax.set_aspect("equal")
+    ax.legend(frameon=False, loc="lower right")
+    ax.set_title(rf"$L_2$ geometry, $\alpha={alpha:.3g}$")
+    plt.show()
+
+
+def shrinkage_1d(alpha_l2: float = 1.0, alpha_l1: float = 1.0) -> None:
+    """L2 never hits 0; L1 is exactly 0 inside the orange dead zone."""
+    w_star = np.linspace(-3, 3, 500)
+    H = np.ones_like(w_star)
+    alpha_l2 = max(float(alpha_l2), 1e-8)
+    alpha_l1 = max(float(alpha_l1), 1e-8)
+    thresh = alpha_l1 / H[0]
+    l1 = l1_soft_threshold(w_star, H, alpha_l1)
+    l2 = l2_shrink_diag(w_star, H, alpha_l2)
+    probe = 0.3
+    print(
+        f"at w*={probe}:  L2 -> {float(l2_shrink_diag(np.array([probe]), np.array([1.0]), alpha_l2)[0]):.3f}"
+        f"   L1 -> {float(l1_soft_threshold(np.array([probe]), np.array([1.0]), alpha_l1)[0]):.3f}"
+        f"   (L1 dead zone |w*| < {thresh:.2f})"
+    )
+
+    fig, ax = plt.subplots(figsize=(6.8, 4.4), layout="constrained")
+    ax.axvspan(
+        -thresh,
+        thresh,
+        color="#ff7f0e",
+        alpha=0.18,
+        label=rf"L1 dead zone $|w^*|<\alpha_1/H={thresh:.2f}$",
+    )
+    ax.plot(w_star, w_star, color="#bbb", label=r"$w^*$")
+    ax.plot(w_star, l2, color="#1f77b4", lw=2, label=rf"$L_2$  $\alpha={alpha_l2:.2g}$")
+    ax.plot(w_star, l1, color="#ff7f0e", lw=2, label=rf"$L_1$  $\alpha={alpha_l1:.2g}$")
+    ax.scatter([-thresh, thresh], [0, 0], color="#d62728", zorder=5, s=40)
+    ax.axhline(0, color="#aaa", lw=0.6)
+    ax.axvline(0, color="#aaa", lw=0.6)
+    ax.set_xlabel(r"$w^*$")
+    ax.set_ylabel(r"$\tilde{w}$")
+    ax.set_title("L1 hits 0 inside the band; L2 only shrinks")
+    ax.legend(frameon=False, fontsize=8)
+    plt.show()
+
+
+def diabetes_stems(ridge_alpha: float = 2.0, lasso_alpha: float = 0.8) -> None:
+    """Refit ridge/lasso. Red × = exact zeros (L1 only)."""
+    from sklearn.linear_model import Lasso, LinearRegression, Ridge
+
+    from data import load_diabetes_split
+
+    d = load_diabetes_split()
+    ols = LinearRegression().fit(d.X_train, d.y_train)
+    ridge = Ridge(alpha=float(ridge_alpha)).fit(d.X_train, d.y_train)
+    lasso = Lasso(alpha=max(float(lasso_alpha), 1e-8), max_iter=20000).fit(d.X_train, d.y_train)
+
+    def mse(m) -> float:
+        return float(np.mean((m.predict(d.X_test) - d.y_test) ** 2))
+
+    for name, m in [("OLS", ols), ("Ridge", ridge), ("Lasso", lasso)]:
+        z = int(np.sum(np.abs(m.coef_) < 1e-6))
+        dead = [d.feature_names[i] for i, v in enumerate(m.coef_) if abs(v) < 1e-6]
+        print(f"{name:6}  test MSE={mse(m):8.1f}  zeros={z}/{m.coef_.size}  dropped={dead}")
+
+    stems_with_zeros(
+        {
+            "OLS": ols.coef_,
+            f"Ridge α={ridge_alpha:g}": ridge.coef_,
+            f"Lasso α={lasso_alpha:g}": lasso.coef_,
+        },
+        d.feature_names,
+        title="diabetes — red × are exact zeros (L1)",
+    )
 
 
 def flatten_weights(model: torch.nn.Module) -> np.ndarray:
