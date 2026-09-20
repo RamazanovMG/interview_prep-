@@ -90,6 +90,68 @@ def l2_geometry(alpha: float = 0.55) -> None:
     plt.show()
 
 
+def zero_moment(alpha: float = 0.8, H: float = 1.0) -> None:
+    """One α for both penalties. L1 snaps to 0 at α = |w*| H; L2 never does."""
+    alpha = max(float(alpha), 1e-8)
+    H = float(H)
+    probes = np.array([0.3, 0.8, 1.5, 2.5])
+    h = np.full_like(probes, H)
+    l1_now = l1_soft_threshold(probes, h, alpha)
+    l2_now = l2_shrink_diag(probes, h, alpha)
+    kill_at = probes * H  # α where L1 hits 0
+
+    print(f"{'w*':>6}  {'α_zero L1':>10}  {'L1 now':>8}  {'L2 now':>8}  dead?")
+    for w, a0, t1, t2 in zip(probes, kill_at, l1_now, l2_now):
+        dead = abs(t1) < 1e-12
+        print(f"{w:6.2f}  {a0:10.2f}  {t1:8.3f}  {t2:8.3f}  {'YES ←' if dead else 'no'}")
+
+    grid = np.linspace(-3.2, 3.2, 500)
+    Hg = np.full_like(grid, H)
+    thresh = alpha / H
+    fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.2), layout="constrained")
+
+    ax = axes[0]
+    ax.axvspan(-thresh, thresh, color="#ff7f0e", alpha=0.18, label=rf"L1 dead $|w^*|<\alpha/H={thresh:.2f}$")
+    ax.plot(grid, grid, color="#bbb", lw=1, label=r"$w^*$")
+    ax.plot(grid, l2_shrink_diag(grid, Hg, alpha), color="#1f77b4", lw=2, label="L2")
+    ax.plot(grid, l1_soft_threshold(grid, Hg, alpha), color="#ff7f0e", lw=2, label="L1")
+    colors = ["#6a3d9a", "#33a02c", "#e31a1c", "#ff7f00"]
+    for w, t1, t2, c in zip(probes, l1_now, l2_now, colors):
+        ax.plot([w, w], [w, t2], color="#1f77b4", lw=0.8, ls=":")
+        ax.plot([w, w], [w, t1], color="#ff7f0e", lw=0.8, ls=":")
+        ax.scatter([w], [w], color=c, s=28, zorder=4)
+        ax.scatter([w], [t2], color="#1f77b4", marker="s", s=36, zorder=5)
+        ax.scatter([w], [t1], color="#ff7f0e", marker="x", s=50, zorder=6, linewidths=1.6)
+    ax.axhline(0, color="#aaa", lw=0.6)
+    ax.axvline(0, color="#aaa", lw=0.6)
+    ax.set_xlim(-3.2, 3.2)
+    ax.set_ylim(-3.2, 3.2)
+    ax.set_aspect("equal")
+    ax.set_xlabel(r"$w^*$")
+    ax.set_ylabel(r"$\tilde{w}(\alpha)$")
+    ax.set_title(rf"same $\alpha={alpha:.2g}$: × = L1, square = L2")
+    ax.legend(frameon=False, fontsize=8, loc="upper left")
+
+    ax = axes[1]
+    a_grid = np.linspace(0.0, 4.0, 400)
+    for w, c, a0 in zip(probes, colors, kill_at):
+        l1_path = l1_soft_threshold(np.full_like(a_grid, w), np.full_like(a_grid, H), a_grid)
+        l2_path = l2_shrink_diag(np.full_like(a_grid, w), np.full_like(a_grid, H), np.maximum(a_grid, 1e-12))
+        ax.plot(a_grid, l2_path, color=c, lw=1.6, ls="--")
+        ax.plot(a_grid, l1_path, color=c, lw=2.0, label=rf"$w^*={w:g}$  (L1 dies at $\alpha={a0:g}$)")
+        ax.scatter([alpha], [l1_soft_threshold(np.array([w]), np.array([H]), alpha)[0]], color=c, marker="x", s=50, zorder=5)
+        ax.scatter([alpha], [l2_shrink_diag(np.array([w]), np.array([H]), alpha)[0]], color=c, marker="s", s=28, zorder=5)
+    ax.axvline(alpha, color="#333", ls=":", lw=1.2)
+    ax.axhline(0, color="#aaa", lw=0.6)
+    ax.set_xlim(0, 4)
+    ax.set_ylim(-0.05, 2.7)
+    ax.set_xlabel(r"$\alpha$  (same for L1 and L2)")
+    ax.set_ylabel(r"$\tilde{w}(\alpha)$")
+    ax.set_title("path: L1 — solid (hits 0), L2 — dashed (never)")
+    ax.legend(frameon=False, fontsize=7)
+    plt.show()
+
+
 def shrinkage_1d(alpha_l2: float = 1.0, alpha_l1: float = 1.0) -> None:
     """L2 never hits 0; L1 is exactly 0 inside the orange dead zone."""
     w_star = np.linspace(-3, 3, 500)
