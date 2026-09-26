@@ -9,3 +9,4 @@ __pycache__/
 *.pth
 .DS_Store
 regularization/data_cache/
+optimization/data_cache/
