@@ -17,7 +17,7 @@ python run.py --quick
 python run.py --only geometry linear
 ```
 
-**Notebook:** open `regularization.ipynb` in Cursor's **Editor Window** (File → Open Editor Window). Pick a Python 3 kernel → **Shift+Enter**. Geometry cells have **α sliders**; training cells use knobs + Ctrl/Cmd+Enter. If you see JSON, you're in the Agents Window — that view cannot render notebooks.
+**Notebook:** open `regularization.ipynb` in Cursor's **Editor Window** (File → Open Editor Window). Pick a Python 3 kernel → **Shift+Enter**. Each section has the ch.7 explanation + a table of what the knob does, then the slider/cell. Geometry is instant sliders; Fashion trains a net (Ctrl+Enter after you change a knob). JSON view = you're in Agents Window.
 
 `TrainConfig.weight_decay` hits weights only (ch. 7.1: leave biases alone).
 
