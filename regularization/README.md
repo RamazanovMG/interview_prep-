@@ -1,6 +1,6 @@
 # Regularization experiments (Goodfellow ch. 7)
 
-Notes: [NOTES.md](NOTES.md)  
+Notes: [NOTES.md](NOTES.md) — Unicode / ASCII formulas (Agents Window has no LaTeX). Pretty `$...$` math is in the notebook, Editor Window only.  
 Chapter: https://www.deeplearningbook.org/contents/regularization.html
 
 No generated data.
@@ -11,10 +11,13 @@ No generated data.
 ```
 python -m pip install -r requirements.txt
 python test_closed_form.py
-python run.py              # first run downloads Fashion-MNIST, then trains
+jupyter notebook regularization.ipynb   # or open the ipynb in Cursor
+python run.py                           # full batch sweep (downloads Fashion-MNIST on first run)
 python run.py --quick
 python run.py --only geometry linear
 ```
+
+**Notebook:** open `regularization.ipynb` in Cursor's **Editor Window** (File → Open Editor Window). Pick a Python 3 kernel → **Shift+Enter**. Each section has the ch.7 explanation + a table of what the knob does, then the slider/cell. Geometry is instant sliders; Fashion trains a net (Ctrl+Enter after you change a knob). JSON view = you're in Agents Window.
 
 `TrainConfig.weight_decay` hits weights only (ch. 7.1: leave biases alone).
 

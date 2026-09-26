@@ -1,4 +1,4 @@
-"""Matplotlib helpers. Headless Agg backend."""
+"""Matplotlib helpers. Agg only when not inside a notebook."""
 
 from __future__ import annotations
 
@@ -6,7 +6,15 @@ from pathlib import Path
 
 import matplotlib
 
-matplotlib.use("Agg")
+try:
+    from IPython import get_ipython
+
+    _in_notebook = get_ipython() is not None
+except Exception:
+    _in_notebook = False
+
+if not _in_notebook:
+    matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
