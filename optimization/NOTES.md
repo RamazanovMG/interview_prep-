@@ -71,7 +71,7 @@ This is a step-size fix, not a new direction.
 
 ### 8.2.5 Long-term dependencies / vanishing
 
-A chain of Jacobians. If each multiply is `< 1`, the product → 0 (tanh/sigmoid). If `> 1`, it explodes. Deep tanh: bottom layers get a dead gradient. ReLU / residual / BN are architecture answers; clipping is the exploding answer.
+A chain of Jacobians. If each multiply is `< 1`, the product → 0 (sigmoid is the clean demo; tanh + Xavier was designed to avoid this). If `> 1`, it explodes. Deep sigmoid: bottom layers get a dead gradient. ReLU / residual / BN are architecture answers; clipping is the exploding answer.
 
 ### 8.2.6 Inexact gradients
 
@@ -198,7 +198,7 @@ The running mean of the iterates. Oscillations cancel. Often better test than th
 | init | 8.4 | Fashion-MNIST | `zero/tiny/xavier/he/huge` |
 | BN | 8.7.1 | Fashion-MNIST | on/off |
 | Polyak | 8.7.3 | Fashion-MNIST | on/off |
-| vanishing grads | 8.2.5 | Fashion-MNIST | `tanh` vs `relu`, depth |
+| vanishing grads | 8.2.5 | Fashion-MNIST | `sigmoid` vs `relu`, depth |
 
 No synthetic samples for the models. Geometry bowls are analytic plots, not fake datasets. Linear: sklearn `load_diabetes`. Vision: official Fashion-MNIST (same Zalando dump as `regularization/`, shared cache if present).
 

@@ -544,11 +544,17 @@ fit(f"init-{INIT}", optimizer="adam", lr=3e-3, init=INIT)
 
     cells.append(
         md(
-            r"""## 15. Исчезающий градиент: tanh vs ReLU (ch. 8.2.5)
+            r"""## 15. Исчезающий градиент: sigmoid vs ReLU (ch. 8.2.5)
 
-Глубокая цепочка. Если каждый слой чуть сжимает сигнал, до низа доезжает ноль.
+Цепочка из пяти слоёв. Если каждый множит градиент на число $<1$, до первого слоя доезжает ноль.
 
-Столбики — средний $|\\nabla|$ по слоям после одного батча (лог-шкала). У tanh низ почти мёртвый. У ReLU живее. Это не «tanh плохой навсегда» — просто на глубине без BN/residual он так себя ведёт.
+Столбики — средний $|\nabla|$ по слоям после одного батча (лог-шкала).
+
+- **sigmoid**: низ мёртвый (классика книги).
+- **ReLU**: доезжает.
+- **tanh + Xavier** как раз придуман, чтобы tanh *не* дох (посмотри сам, замени `"sigmoid"` → `"tanh"`).
+
+Клип тут не поможет: крошечный градиент резать нечего.
 """
         )
     )
@@ -559,7 +565,7 @@ fit(f"init-{INIT}", optimizer="adam", lr=3e-3, init=INIT)
     DATA = load_fashion_split(n_train=N_TRAIN, n_val=N_VAL, n_test=N_TEST, seed=SEED)
 deep = (64, 64, 64, 64, 64)
 rows = []
-for act in ("tanh", "relu"):
+for act in ("sigmoid", "relu"):
     m = make_mlp(DATA.n_features, DATA.n_classes, hidden=deep, activation=act, init="xavier", seed=0)
     rows.append((act, one_batch_grad_profile(m, DATA.X_train, DATA.y_train)))
 viz.grad_bars(rows)

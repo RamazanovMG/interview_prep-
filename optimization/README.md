@@ -30,3 +30,13 @@ python run.py --quick
 | `damp` | 8.6 | Newton → SGD as `λ` grows |
 | init | 8.4 | zero / tiny / xavier / he / huge |
 | BN / Polyak | 8.7 | landscape + averaged weights |
+
+## This run (CPU, 800 Fashion-MNIST train, 8 epochs, MLP 128–128)
+
+| optimizer | train | test | gap |
+|---|---|---|---|
+| SGD `ε=0.05` | 0.76 | 0.71 | 0.05 |
+| momentum `β=0.9` | 0.82 | **0.76** | 0.06 |
+| Adam `ε=3e-3` | 0.86 | 0.77 | 0.09 |
+
+Adam wins train; test is close to momentum. Faster `J` ≠ better `P` — that's §8.1. `zero` init stays at chance 0.10. Deep sigmoid: first-layer `|g|` ~ 1e-5 vs ReLU ~ 1e-3.
