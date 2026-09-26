@@ -1,6 +1,6 @@
 # Regularization experiments (Goodfellow ch. 7)
 
-Notes: [NOTES.md](NOTES.md)  
+Notes: [NOTES.md](NOTES.md) — Unicode / ASCII formulas (Agents Window has no LaTeX). Pretty `$...$` math is in the notebook, Editor Window only.  
 Chapter: https://www.deeplearningbook.org/contents/regularization.html
 
 No generated data.
